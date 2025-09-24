@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ printf "%s-rolebinding" (include "todoapp.fullname" .) }}
+  namespace: {{ .Values.namespace }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccount.name }}
+    namespace: {{ .Values.namespace }}
+roleRef:
+  kind: Role
+  name: {{ printf "%s-role" (include "todoapp.fullname" .) }}
+  apiGroup: rbac.authorization.k8s.io
