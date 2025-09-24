@@ -1,0 +1,92 @@
+# Namespace
+namespace: todoapp
+
+# Application replica count
+replicaCount: 2
+
+# Application image
+image:
+  repository: ikulyk404/todoapp:4.0.1/todoapp  # твій Docker-образ
+  tag: latest
+
+# Database connection (MySQL sub-chart)
+database:
+  secretName: mysql-secret
+  userKey: username
+  passwordKey: password
+  nameKey: database
+
+# Resource requests and limits
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+
+# RollingUpdate strategy
+rollingUpdate:
+  maxUnavailable: 1
+  maxSurge: 1
+
+# Node affinity
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: app
+              operator: In
+              values:
+                - todoapp
+
+# HPA configuration
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 50
+  targetMemoryUtilizationPercentage: 50
+
+# PV / PVC
+pv:
+  storage: 1Gi
+pvc:
+  storage: 1Gi
+
+# Service Account
+serviceAccount:
+  create: true
+  name: "" # динамічне ім'я через шаблон
+
+# MySQL sub-chart dependency
+mysql:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: mysql
+    tag: 8.0
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+  pvc:
+    storage: 1Gi
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - mysql
+  tolerations:
+    - key: "app"
+      operator: "Equal"
+      value: "mysql"
+      effect: "NoSchedule"
