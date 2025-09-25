@@ -1,89 +1,82 @@
-# Instructions to Validate the Helm Chart Deployment
+# Instructions for Deploying and Validating the TodoApp Helm Chart
 
-This document explains how to validate that the `todoapp` Helm chart and its `mysql` sub-chart are correctly deployed to the kind cluster.
+This guide explains how to deploy the `todoapp` Helm chart with its MySQL sub-chart and how to validate that all resources are running correctly.
 
 ---
 
-## 1. Bootstrap the Cluster
+## 1. Prerequisites
 
-Run the bootstrap script to set up the cluster, namespaces, RBAC, and Helm charts:
+Make sure you have the following installed:
 
-chmod +x bootstrap.sh
+- Kubernetes cluster (e.g., kind)
+- kubectl CLI
+- Helm CLI
+- yq CLI
+
+---
+
+## 2. Deploy the Chart
+
+Run the bootstrap script to deploy all resources:
+
 ./bootstrap.sh
-This will:
+This script will:
 
-Create the kind cluster from cluster.yml
+Apply ConfigMaps and Secrets.
 
-Apply necessary taints on nodes with label app=mysql
+Create the todoapp namespace if it does not exist.
 
-Deploy the todoapp Helm chart with the mysql dependency
+Update Helm dependencies.
 
-2. Verify Namespaces
-Ensure that the namespaces from values.yaml are created:
+Deploy the todoapp chart (which includes the MySQL sub-chart).
 
-
-kubectl get ns
-Expected:
-
-todoapp namespace
-
-mysql namespace
+Wait for the deployment to become available.
 
 3. Verify Deployments and StatefulSets
 Check the todoapp Deployment:
 
-kubectl get deploy -n todoapp
-Check the mysql StatefulSet:
 
-kubectl get sts -n mysql
-4. Verify Secrets
-Secrets are created from values.yaml using a range function. Validate them:
+kubectl get deploy todoapp-todoapp -n todoapp
+Check the MySQL StatefulSet:
+
+kubectl get sts todoapp-mysql -n todoapp
+4. Verify Services
+Check the service for todoapp:
+
+
+kubectl get svc todoapp-todoapp -n todoapp
+Check the MySQL service:
+
+
+kubectl get svc todoapp-mysql -n todoapp
+5. Verify Secrets
+List the secrets:
 
 
 kubectl get secrets -n todoapp
-kubectl get secrets -n mysql
-5. Verify Configurations
-Check Resource Requests and Limits
+Check that the todoapp-todoapp-secrets and MySQL secrets exist.
 
-kubectl get deploy todoapp -n todoapp -o yaml | grep resources -A5
-Check Rolling Update Strategy
+6. Verify Persistent Volumes and Claims
+List PVs:
 
-kubectl get deploy todoapp -n todoapp -o yaml | grep rollingUpdate -A5
-Check HPA
-
-kubectl get hpa -n todoapp
-Check PV and PVC
 
 kubectl get pv
+List PVCs:
+
+
 kubectl get pvc -n todoapp
-kubectl get pvc -n mysql
-6. Verify Node Affinity and Tolerations
-Check Deployment affinity:
+7. Logs and Debug
+To check logs of the todoapp pod:
 
 
-kubectl describe deploy todoapp -n todoapp | grep -A5 Affinity
-Check StatefulSet tolerations:
+kubectl logs -l app=todoapp-todoapp -n todoapp
+To check logs of MySQL:
 
 
-kubectl describe sts mysql -n mysql | grep -A5 Tolerations
-7. Final Validation
-Run the following command to list all deployed resources:
+kubectl logs -l app=todoapp-mysql -n todoapp
+8. Clean Up
+To remove all resources:
 
 
-kubectl get all,cm,secret,ing -A
-Save the output into a file:
-
-kubectl get all,cm,secret,ing -A > output.log
-Attach the file to your PR.
-
-✅ Validation is complete once:
-
-All namespaces exist
-
-Deployments and StatefulSets are running
-
-Secrets are created and mounted as env variables
-
-HPA, PV, PVC, affinity, tolerations, and rolling updates match values.yaml
-
-The output.log file is present in the repository root
+helm uninstall todoapp -n todoapp
+kubectl delete namespace todoapp

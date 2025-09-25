@@ -6,6 +6,11 @@ metadata:
     app: {{ include "todoapp.fullname" . }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .Values.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.rollingUpdate.maxSurge }}
   selector:
     matchLabels:
       app: {{ include "todoapp.fullname" . }}
@@ -15,24 +20,21 @@ spec:
         app: {{ include "todoapp.fullname" . }}
     spec:
       serviceAccountName: {{ include "todoapp.serviceAccountName" . }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
       containers:
-        - name: todoapp
+        - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
           env:
-            - name: DB_USER
+          {{- range $k, $v := .Values.database.secrets }}
+            - name: {{ $k }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.database.secretName }}
-                  key: {{ .Values.database.userKey }}
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.database.secretName }}
-                  key: {{ .Values.database.passwordKey }}
-            - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.database.secretName }}
-                  key: {{ .Values.database.nameKey }}
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+                  name: {{ template "mysql.fullname" $ }}
+                  key: {{ $v }}
+          {{- end }}
